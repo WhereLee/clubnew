@@ -1,0 +1,21 @@
+:root {
+  --primary: #2E5BFF;
+  --primary-hover: #2448CC;
+  --sidebar-bg: #1B1F2A;
+  --sidebar-text: #9CA3AF;
+  --sidebar-active: #FFFFFF;
+  --content-bg: #F5F6FA;
+  --card-bg: #FFFFFF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-weak: #9CA3AF;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--content-bg);
+  color: var(--text-primary);
+}

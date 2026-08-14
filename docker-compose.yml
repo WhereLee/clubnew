@@ -1,0 +1,105 @@
+# 社团全流程管理系统 · 一键部署编排（云服务器）
+#
+# 使用前必读：
+#   1. 修改下方 JWT_SECRET / MYSQL_PASSWORD 为强随机值（生产禁止默认值）
+#   2. docker compose up -d --build 即可拉起全栈：
+#      - backend   8081（Flyway 自动建表 + 种子数据，无需手工执行 SQL）
+#      - admin-web 5173（nginx 托管，/api 反代 backend）
+#      - user-web  5174
+#   3. 数据持久化在命名卷 club_flow_mysql_data / club_flow_redis_data
+#
+# 版本要求：Docker 24+ / Compose v2
+
+name: club-flow
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: clubflow-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}
+      MYSQL_DATABASE: club_flow
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - club_flow_mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: clubflow-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - club_flow_redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: clubflow-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: club_flow
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-ChangeMe_JwtSecretAtLeast32BytesLong!!}
+      TZ: Asia/Shanghai
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  admin-web:
+    build: ./admin-web
+    container_name: clubflow-admin-web
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user-web:
+    build: ./user-web
+    container_name: clubflow-user-web
+    ports:
+      - "5174:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  club_flow_mysql_data:
+  club_flow_redis_data:

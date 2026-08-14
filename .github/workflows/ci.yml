@@ -1,0 +1,60 @@
+# 社团全流程管理系统 · CI 流水线
+# 触发：push / PR（main 分支）
+# 校验：后端 mvn test（H2 + Flyway 同源迁移）+ 两个前端 build
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend-test:
+    name: Backend (mvn test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run tests
+        run: mvn -B test --file backend/pom.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+          retention-days: 7
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [admin-web, user-web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci --prefix ${{ matrix.dir }}
+
+      - name: Build
+        run: npm run build --prefix ${{ matrix.dir }}

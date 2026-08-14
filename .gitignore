@@ -1,0 +1,23 @@
+# Java / Maven
+backend/target/
+*.class
+backend/logs/
+
+# Node
+node_modules/
+admin-web/dist/
+user-web/dist/
+npm-debug.log*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 环境变量文件（敏感信息禁止入库）
+.env
+.env.*

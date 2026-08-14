@@ -1,0 +1,24 @@
+# 本地开发环境（默认 profile）
+# 说明：仅用于本机开发，密码等敏感信息以环境变量覆盖优先，见 application.yml 占位符
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/club_flow?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 3000ms
+
+mybatis-plus:
+  configuration:
+    # 仅开发环境打印 SQL；生产 profile 不配置此项
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

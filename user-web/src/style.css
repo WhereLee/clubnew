@@ -1,0 +1,17 @@
+:root {
+  --primary: #2E5BFF;
+  --accent: #FF6B35;
+  --bg: #F7F8FB;
+  --card: #FFFFFF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --text: #1F2937;
+  --text-sec: #6B7280;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
