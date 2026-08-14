@@ -118,13 +118,24 @@ class AgentServiceTest {
     }
 
     @Test
-    void registry_adminSeesAllTools_studentFiltered() {
-        // Phase A 无工具挂载：两者皆为空；注册表本身可查询
-        assert toolRegistry.allTools().isEmpty();
-        assert toolRegistry.toolsFor(ADMIN).isEmpty();
-        assert toolRegistry.toolsFor(STUDENT).isEmpty();
-        // describeFor 输出为合法 prompt 文本
-        assert toolRegistry.describeFor(ADMIN).isBlank();
+    void registry_sixTools_scopedByPermission() {
+        // Phase B 3 技术端（ADMIN）+ Phase C 2 业务端（CLUB_ADMIN）+ Phase D 1 知识库（ALL）
+        assert toolRegistry.allTools().size() == 6;
+        assert toolRegistry.toolsFor(ADMIN).size() == 6;
+        // 学生仅可见知识库检索
+        assert toolRegistry.toolsFor(STUDENT).size() == 1;
+        assert toolRegistry.toolsFor(STUDENT).get(0).name().equals("search_platform_knowledge");
+        // 社长可见业务端 2 个 + 知识库 1 个
+        var president = new AgentContext(1016L, "pres1001", "陈晨", "STUDENT", 3, 2001L);
+        assert toolRegistry.toolsFor(president).size() == 3;
+        // describeFor 输出为合法 prompt 文本（含工具名）
+        String describe = toolRegistry.describeFor(ADMIN);
+        assert describe.contains("analyze_today_errors");
+        assert describe.contains("data_health_check");
+        assert describe.contains("system_health");
+        assert describe.contains("query_business_data");
+        assert describe.contains("pending_approval_summary");
+        assert describe.contains("search_platform_knowledge");
     }
 
     @Test

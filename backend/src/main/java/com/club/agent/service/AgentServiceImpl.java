@@ -15,6 +15,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.club.agent.AbstractAgentTool;
 import com.club.agent.AgentContext;
 import com.club.agent.AgentTool;
 import com.club.agent.AgentToolRegistry;
@@ -74,14 +75,24 @@ public class AgentServiceImpl {
 
         // 3. 流式调用；聚合完整回复用于落库
         AtomicReference<StringBuilder> replyBuf = new AtomicReference<>(new StringBuilder());
+        AtomicReference<StringBuilder> toolCallsBuf = new AtomicReference<>(new StringBuilder());
         AtomicLong assistantMsgId = new AtomicLong();
 
         Flux<ServerSentEvent<String>> textFlux = agentChatClient.prompt()
                 .system(buildSystemPrompt(ctx))
                 .messages(history)
                 .user(content)
+                // 按当前用户权限过滤后的工具集合（Spring AI 自动编排 function calling）
+                // 注意：varargs 必须展开，否则 List 本身被当作单个工具对象扫描
+                .tools(toolRegistry.toolsFor(ctx).toArray(new Object[0]))
+                // 工具侧上下文：权限画像 + 会话 ID（工具轨迹落库用）
+                .toolContext(Map.of(AbstractAgentTool.CTX_KEY, ctx, AbstractAgentTool.SESSION_KEY, session.getId()))
                 .stream()
-                .content()
+                .chatResponse()
+                .doOnNext(cr -> collectToolCalls(cr, toolCallsBuf))
+                .flatMapIterable(org.springframework.ai.chat.model.ChatResponse::getResults)
+                .mapNotNull(gen -> gen.getOutput() == null ? null : gen.getOutput().getText())
+                .filter(s -> !s.isEmpty())
                 .doOnNext(chunk -> replyBuf.get().append(chunk))
                 .map(chunk -> ServerSentEvent.<String>builder(chunk).event("text").build());
 
@@ -91,6 +102,9 @@ public class AgentServiceImpl {
             assistantMsg.setSessionId(session.getId());
             assistantMsg.setRole("assistant");
             assistantMsg.setContent(replyBuf.get().toString());
+            if (toolCallsBuf.get().length() > 0) {
+                assistantMsg.setToolCalls(toolCallsBuf.get().toString());
+            }
             messageMapper.insert(assistantMsg);
             assistantMsgId.set(assistantMsg.getId());
 
@@ -180,8 +194,13 @@ public class AgentServiceImpl {
           .append("行为准则：\n")
           .append("1. 只使用「可用工具」获取信息，禁止编造任何数据；\n")
           .append("2. 一切写操作（发布、审批、修改数据）只输出建议，由用户本人确认后执行；\n")
-          .append("3. 回答简洁、使用中文；数据类问题先调工具再回答。\n\n")
-          .append("### 可用工具\n");
+          .append("3. 回答简洁、使用中文；数据类问题先调工具再回答；\n");
+        if (ctx.isAdmin() || ctx.isClubAdmin()) {
+            sb.append("4. 可为运营场景起草文案（纳新推文/活动公告/审批意见），标注「草稿」供用户修改后发布。\n\n");
+        } else {
+            sb.append("\n");
+        }
+        sb.append("### 可用工具\n");
         List<AgentTool> tools = toolRegistry.toolsFor(ctx);
         if (tools.isEmpty()) {
             sb.append("（暂无，各端工具将在后续版本挂载）\n");
@@ -197,8 +216,22 @@ public class AgentServiceImpl {
         return sb.toString();
     }
 
-    private void updateSessionTitle(Long sessionId, String firstContent) {
-        AgentSession session = new AgentSession();
+    /** 从流式 ChatResponse 中提取工具调用轨迹（JSON 数组拼接） */
+    private void collectToolCalls(org.springframework.ai.chat.model.ChatResponse cr, AtomicReference<StringBuilder> buf) {
+        try {
+            for (var gen : cr.getResults()) {
+                if (gen.getOutput() == null || gen.getOutput().getToolCalls().isEmpty()) {
+                    continue;
+                }
+                String json = objectMapper.writeValueAsString(gen.getOutput().getToolCalls());
+                buf.get().append(json);
+            }
+        } catch (Exception ignored) {
+            // 轨迹聚合失败不影响主流程（工具级轨迹已在 AbstractAgentTool 落库）
+        }
+    }
+
+    private void updateSessionTitle(Long sessionId, String firstContent) {        AgentSession session = new AgentSession();
         session.setId(sessionId);
         session.setTitle(truncate(firstContent));
         sessionMapper.updateById(session);

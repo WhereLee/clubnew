@@ -19,6 +19,10 @@ spring:
       add-mappings: false
   main:
     allow-bean-definition-overriding: true
+  ai:
+    model:
+      # 测试环境禁用 embedding 自动配置（本地 ONNX 模型文件不在 CI 环境；RAG 工具随 @ConditionalOnBean 自动不注册）
+      embedding: none
 
 # 测试环境关闭 Stream 消费者（mock Redis 无 stream 能力），发布器自动降级为同步加分
 club:

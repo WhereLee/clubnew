@@ -154,6 +154,16 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
+        <!-- 本地 ONNX embedding（bge-base-zh-v1.5，中文 RAG 向量化；模型路径经环境变量注入） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-transformers</artifactId>
+        </dependency>
+        <!-- VectorStore 抽象（SimpleVectorStore 本地持久化；生产可换 pgvector starter，业务零改动） -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-vector-store</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
