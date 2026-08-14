@@ -51,7 +51,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: '**/package-lock.json'
+          # 精确指向每个项目的 lockfile（glob 会让 matrix 两个 job 共享同一缓存键）
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
 
       - name: Install dependencies
         run: npm ci --prefix ${{ matrix.dir }}

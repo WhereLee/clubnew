@@ -54,11 +54,15 @@ class SysConfigServiceImplTest {
         // 缓存未命中
         when(valueOps.get("sys_config:sys.index.notice")).thenReturn(null);
 
+        // 测试意图是「缓存未命中 → 查库 → 回填缓存」，断言与 DB 实际值一致，
+        // 不依赖迁移种子文案（种子调整不应导致测试脆断）
+        String dbValue = sysConfigService.getById(1L).getConfigValue();
+
         String result = sysConfigService.getConfigValue("sys.index.notice");
 
-        assertEquals("欢迎使用社团管理系统", result);
-        // 验证写入缓存
-        verify(valueOps).set(eq("sys_config:sys.index.notice"), eq("欢迎使用社团管理系统"), anyLong(), any());
+        assertEquals(dbValue, result);
+        // 验证写入缓存（回填值与 DB 一致）
+        verify(valueOps).set(eq("sys_config:sys.index.notice"), eq(dbValue), anyLong(), any());
     }
 
     @Test
