@@ -77,6 +77,12 @@ curl http://<服务器IP>:8081/api/actuator/health   # {"status":"UP"}
 
 生产 profile 说明：`SPRING_PROFILES_ACTIVE=prod` 下所有敏感配置必须由环境变量注入（见 `application-prod.yml`），SQL 日志关闭、Swagger 关闭、Hikari 调优、日志落盘。
 
+### 安全部署须知（终审遗留项）
+
+1. **后端不可绕过 nginx 直接对公网暴露**：限流按 IP 分片依赖 nginx 覆盖写入的 `X-Real-IP`（compose 已绑回环 + nginx 反代，请勿私自改回 0.0.0.0 直连）。
+2. **refresh token 跨设备共用**：同一 refresh token 在 5 秒宽限期后由第二个设备使用，会被判定为疑似泄露并吊销该用户全部会话——这是设计行为（轮换检测），属于正常安全语义。
+3. **refresh token 存储于 localStorage**：XSS 风险由 CSP（`script-src 'self'`）缓解；如需更强防护可改造为 HttpOnly cookie（需配套 CSRF 防护），属可选增强。
+
 ## 运行测试
 
 ```bash
