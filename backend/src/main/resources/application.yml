@@ -12,6 +12,18 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     date-format: yyyy-MM-dd HH:mm:ss
+  # Spring AI 公共配置（所有 profile 生效）：
+  # 小米 mimo（OpenAI 兼容协议）；api-key 默认 mock 触发本地假模型（CI/无 key 全链路可跑），
+  # 设置环境变量 MIMO_API_KEY 后自动切换真实模型，零代码改动
+  ai:
+    openai:
+      base-url: https://api.xiaomimimo.com/v1
+      api-key: ${MIMO_API_KEY:mock}
+      chat:
+        options:
+          model: mimo-v2.5
+          temperature: 0.7
+          max-tokens: 2048
 
 server:
   port: ${SERVER_PORT:8081}

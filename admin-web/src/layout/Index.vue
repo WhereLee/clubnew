@@ -30,6 +30,10 @@
           <el-menu-item index="/log/login">登录日志</el-menu-item>
         </el-sub-menu>
       </el-menu>
+      <button class="ai-entry" @click="aiVisible = true">
+        <span class="ai-entry-orb"></span>
+        AI 助手
+      </button>
     </el-aside>
     <el-container>
       <el-header class="header">
@@ -46,12 +50,17 @@
       <el-main class="main"><router-view /></el-main>
     </el-container>
   </el-container>
+  <AiDrawer :visible="aiVisible" @close="aiVisible = false" />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout } from '../api/auth'
 import { clearTokens } from '../utils/request'
+import AiDrawer from '../components/AiDrawer.vue'
+
+const aiVisible = ref(false)
 
 const router = useRouter()
 const handleCommand = async (cmd: string) => {
@@ -66,8 +75,40 @@ const handleCommand = async (cmd: string) => {
 <style scoped>
 .layout { height: 100vh; }
 .sidebar { background: #1B1F2A; overflow-y: auto; }
+
 .logo { height: 60px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 600; }
 .header { background: #fff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; }
 .main { background: #F5F6FA; padding: 24px; }
 .user-info { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+/* AI 助手入口（侧边栏底部） */
+.ai-entry {
+  margin: 12px 14px;
+  padding: 10px 0;
+  width: calc(100% - 28px);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.08);
+  color: #6ee7b7;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.ai-entry:hover {
+  background: rgba(52, 211, 153, 0.18);
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.25);
+}
+
+.ai-entry-orb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.8);
+}
 </style>
