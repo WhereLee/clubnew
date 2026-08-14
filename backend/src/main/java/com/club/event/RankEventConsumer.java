@@ -1,5 +1,6 @@
 package com.club.event;
 
+import com.club.metrics.ClubMetrics;
 import com.club.service.RankService;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -48,6 +49,9 @@ public class RankEventConsumer {
 
     @Resource
     private RankService rankService;
+
+    @Resource
+    private ClubMetrics metrics;
 
     /** 开关：测试环境关闭消费者（mock Redis 无法提供 stream 能力） */
     @Value("${club.event.stream.enabled:true}")
@@ -131,6 +135,20 @@ public class RankEventConsumer {
             }
         } catch (Exception e) {
             log.warn("PENDING 消息处理异常: {}", e.getMessage());
+        } finally {
+            updatePendingGauge();
+        }
+    }
+
+    /** 将 XPENDING 积压数暴露为 Gauge（Prometheus 消费积压可视化） */
+    private void updatePendingGauge() {
+        try {
+            var summary = stringRedisTemplate.opsForStream().pending(ClubEventPublisher.STREAM_KEY, GROUP_NAME);
+            if (summary != null) {
+                metrics.setStreamPending(summary.getTotalPendingMessages());
+            }
+        } catch (Exception ignored) {
+            // 低版本 Redis / mock 环境不支持时忽略
         }
     }
 
@@ -163,8 +181,10 @@ public class RankEventConsumer {
             if (clubId != null) {
                 rankService.incrClubActivityScore(clubId, eventType.getScore());
             }
+            metrics.incrEventConsumed();
             return true;
         } catch (Exception e) {
+            metrics.incrEventConsumeFailures();
             log.error("事件处理失败，消息留 PENDING 待重试: {}", e.getMessage());
             return false;
         }

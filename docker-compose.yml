@@ -17,7 +17,8 @@ services:
     image: mysql:8.0
     container_name: clubflow-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}
+      # 强制要求设置强密码（未设置时 compose 启动直接报错）
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:?请先设置 MYSQL_PASSWORD 环境变量（强密码）}
       MYSQL_DATABASE: club_flow
       TZ: Asia/Shanghai
     command:
@@ -27,9 +28,10 @@ services:
     volumes:
       - club_flow_mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      # 只绑本机回环：公网不直接暴露数据库端口
+      - "127.0.0.1:3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_PASSWORD:?请先设置 MYSQL_PASSWORD 环境变量（强密码）}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -39,13 +41,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: clubflow-redis
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?请先设置 REDIS_PASSWORD 环境变量（强密码）}"]
     volumes:
       - club_flow_redis_data:/data
     ports:
-      - "6379:6379"
+      # 只绑本机回环：Redis 无认证暴露 = 攻击者可伪造任意用户会话（refresh 接管链）
+      - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep PONG"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -60,13 +63,17 @@ services:
       MYSQL_PORT: 3306
       MYSQL_DATABASE: club_flow
       MYSQL_USERNAME: root
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ChangeMe_StrongRootPwd}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请先设置 MYSQL_PASSWORD 环境变量（强密码）}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-ChangeMe_JwtSecretAtLeast32BytesLong!!}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?请先设置 REDIS_PASSWORD 环境变量（强密码）}
+      JWT_SECRET: ${JWT_SECRET:?请先设置 JWT_SECRET 环境变量（32字节以上强随机值）}
+      # compose 内网开放 actuator 探活与 prometheus 抓取（8081 已绑回环，公网经 nginx 且 nginx 屏蔽 /api/actuator）
+      SECURITY_ACTUATOR_OPEN: "true"
       TZ: Asia/Shanghai
     ports:
-      - "8081:8081"
+      # 只绑本机回环：公网统一走 admin-web/user-web 的 nginx 反代
+      - "127.0.0.1:8081:8081"
     depends_on:
       mysql:
         condition: service_healthy
@@ -100,6 +107,41 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ============ 可观测性（Prometheus + Grafana） ============
+  # 安全策略：监控面板默认只绑本机回环（公网访问请通过 SSH 隧道或前置 nginx + auth_basic）
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: clubflow-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - club_flow_prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: clubflow-grafana
+    environment:
+      # 强制要求设置强密码（未设置时 compose 启动直接报错，杜绝默认弱密码上公网）
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?请先设置 GRAFANA_PASSWORD 环境变量（强密码）}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - club_flow_grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   club_flow_mysql_data:
   club_flow_redis_data:
+  club_flow_prometheus_data:
+  club_flow_grafana_data:

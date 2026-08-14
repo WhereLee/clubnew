@@ -2,6 +2,7 @@ package com.club;
 
 import com.club.event.ClubEventPublisher;
 import com.club.event.EventType;
+import com.club.metrics.ClubMetrics;
 import com.club.service.RankService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ class ClubEventPublisherTest {
 
     private StringRedisTemplate stringRedisTemplate;
     private RankService rankService;
+    private ClubMetrics metrics;
     private ClubEventPublisher publisher;
 
     @BeforeEach
@@ -34,10 +36,12 @@ class ClubEventPublisherTest {
     void setUp() {
         stringRedisTemplate = Mockito.mock(StringRedisTemplate.class);
         rankService = Mockito.mock(RankService.class);
+        metrics = Mockito.mock(ClubMetrics.class);
         publisher = new ClubEventPublisher();
         // 手动注入（避免起 Spring 上下文，单测更轻）
         org.springframework.test.util.ReflectionTestUtils.setField(publisher, "stringRedisTemplate", stringRedisTemplate);
         org.springframework.test.util.ReflectionTestUtils.setField(publisher, "rankService", rankService);
+        org.springframework.test.util.ReflectionTestUtils.setField(publisher, "metrics", metrics);
     }
 
     @Test

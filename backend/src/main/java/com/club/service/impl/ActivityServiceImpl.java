@@ -14,6 +14,7 @@ import com.club.event.EventType;
 import com.club.mapper.ActivityCheckinMapper;
 import com.club.mapper.ActivityMapper;
 import com.club.mapper.ActivitySignupMapper;
+import com.club.metrics.ClubMetrics;
 import com.club.service.ActivityService;
 import com.club.service.RedisStockService;
 import jakarta.annotation.Resource;
@@ -40,6 +41,9 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
 
     @Resource
     private RedisStockService stockService;
+
+    @Resource
+    private ClubMetrics metrics;
 
     private static final String STOCK_KEY_PREFIX = "stock:activity:";
 
@@ -126,6 +130,7 @@ public class ActivityServiceImpl extends ServiceImpl<ActivityMapper, Activity> i
     @Override
     @Transactional
     public void signupActivity(Long activityId, Long userId) {
+        metrics.incrActivitySignup();
         Activity activity = getById(activityId);
         if (activity == null) throw new BusinessException("活动不存在");
         String status = activity.getStatus();

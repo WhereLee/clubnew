@@ -12,6 +12,7 @@ import com.club.enums.RecruitStatus;
 import com.club.event.ClubEventPublisher;
 import com.club.event.EventType;
 import com.club.mapper.RecruitMapper;
+import com.club.metrics.ClubMetrics;
 import com.club.mapper.RecruitRecordMapper;
 import com.club.service.RecruitService;
 import com.club.service.RedisStockService;
@@ -36,6 +37,9 @@ public class RecruitServiceImpl extends ServiceImpl<RecruitMapper, Recruit> impl
 
     @Resource
     private ClubEventPublisher eventPublisher;
+
+    @Resource
+    private ClubMetrics metrics;
 
     private static final String STOCK_KEY_PREFIX = "stock:recruit:";
 
@@ -110,16 +114,19 @@ public class RecruitServiceImpl extends ServiceImpl<RecruitMapper, Recruit> impl
         if (recruitRecordMapper.selectCount(wrapper) > 0) {
             throw new BusinessException("已报名，请勿重复提交");
         }
+        metrics.incrRecruitApply();
         // Redis 预扣库存（1=成功，0=不足，-1=降级走 DB）
         String stockKey = STOCK_KEY_PREFIX + recruitId;
         int preDeduct = stockService.tryDeduct(stockKey);
         if (preDeduct == 0) {
+            metrics.incrStockPreDeductFailures();
             throw new BusinessException("名额已满");
         }
         // 数据库原子扣减（最终防线，防超卖）
         int rows = recruitMapper.applyRecruit(recruitId);
         if (rows == 0) {
             // DB 扣减失败，回滚 Redis 预扣
+            metrics.incrStockPreDeductFailures();
             stockService.rollback(stockKey);
             throw new BusinessException("名额已满");
         }

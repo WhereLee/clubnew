@@ -3,6 +3,7 @@ package com.club.config;
 import com.club.security.JwtAuthenticationFilter;
 import com.club.security.SecurityExceptionHandler;
 import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +22,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /** 是否匿名开放 actuator 监控端点（生产默认 false，仅开发/内网环境开启） */
+    @Value("${security.actuator-open:false}")
+    private boolean actuatorOpen;
 
     @Resource
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -44,10 +49,9 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health", "/auth/login", "/auth/register", "/auth/captcha").permitAll()
+                .requestMatchers("/health", "/auth/login", "/auth/register", "/auth/refresh", "/auth/captcha").permitAll()
                 .requestMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // 探活端点对 LB/监控系统开放；metrics 仍要求认证
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers(request -> isOpenActuator(request)).permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exception -> exception
@@ -56,5 +60,18 @@ public class SecurityConfig {
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    /**
+     * actuator 端点放行策略：仅当 security.actuator-open=true 时匿名开放
+     * health/info/prometheus（本地开发与 docker 内网监控场景），否则一律要求认证。
+     */
+    private boolean isOpenActuator(jakarta.servlet.http.HttpServletRequest request) {
+        if (!actuatorOpen) return false;
+        // getServletPath() 不含 context-path（/api），与 permitAll 匹配规则一致
+        String path = request.getServletPath();
+        return path.equals("/actuator/health")
+                || path.equals("/actuator/info")
+                || path.equals("/actuator/prometheus");
     }
 }

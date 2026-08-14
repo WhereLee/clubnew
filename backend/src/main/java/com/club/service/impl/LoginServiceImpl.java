@@ -7,6 +7,7 @@ import com.club.domain.SysUser;
 import com.club.security.JwtUtils;
 import com.club.security.LoginUser;
 import com.club.service.LoginService;
+import com.club.service.RefreshTokenService;
 import com.club.service.SysLoginLogService;
 import com.club.service.SysMenuService;
 import com.club.service.SysUserService;
@@ -41,6 +42,9 @@ public class LoginServiceImpl implements LoginService {
 
     @Resource
     private JwtUtils jwtUtils;
+
+    @Resource
+    private RefreshTokenService refreshTokenService;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -91,10 +95,16 @@ public class LoginServiceImpl implements LoginService {
         }
         // 记录登录日志
         recordLoginLog(username, "0", "登录成功");
+        // 密码验证通过 = 身份确认：解除复用检测触发的拉黑（拉黑只针对旧会话残余风险）
+        refreshTokenService.clearBlacklist(user.getId());
 
         LoginVO vo = new LoginVO();
         vo.setToken(token);
         vo.setExpiresIn(jwtUtils.getExpiration() / 1000);
+        // 签发 refresh token（Redis 不可用时返回 null，前端仅用 access）
+        String refreshToken = refreshTokenService.issueRefreshToken(user.getId());
+        vo.setRefreshToken(refreshToken);
+        vo.setRefreshExpiresIn(jwtUtils.getRefreshExpiration() / 1000);
         return vo;
     }
 
@@ -105,6 +115,14 @@ public class LoginServiceImpl implements LoginService {
         }
         if (token != null) {
             stringRedisTemplate.delete(LOGIN_TOKENS_PREFIX + token);
+        }
+    }
+
+    @Override
+    public void logout(String token, String refreshToken) {
+        logout(token);
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.revoke(refreshToken);
         }
     }
 

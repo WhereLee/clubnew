@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '../utils/request'
+import request, { clearTokens, getRefreshToken } from '../utils/request'
 
 const router = useRouter()
 const user = ref<any>(null)
@@ -41,7 +41,10 @@ const load = async () => {
   user.value = res.data.user
 }
 const handleLogout = () => {
-  localStorage.removeItem('token')
+  try {
+    request.post('/auth/logout', { refreshToken: getRefreshToken() })
+  } catch {}
+  clearTokens()
   router.push('/login')
 }
 onMounted(load)

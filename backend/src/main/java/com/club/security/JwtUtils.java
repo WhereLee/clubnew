@@ -97,4 +97,24 @@ public class JwtUtils {
     public long getExpiration() {
         return expiration;
     }
+
+    /** refresh token 有效期（毫秒） */
+    @Value("${jwt.refresh-expiration:604800000}")
+    private long refreshExpiration;
+
+    public long getRefreshExpiration() {
+        return refreshExpiration;
+    }
+
+    /**
+     * 生成 refresh token：32 字节 SecureRandom 的不透明随机串（URL-safe Base64）。
+     * <p>
+     * 刻意不用 JWT：refresh token 需要「可撤销 + 可轮换」，无状态 JWT 做不到，
+     * 随机串配合 Redis 才有吊销能力（与 access 的 JWT + 降级策略形成互补）。
+     */
+    public String generateRefreshToken() {
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 }

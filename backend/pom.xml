@@ -52,6 +52,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Prometheus 指标导出（/actuator/prometheus 由 prometheus server 抓取） -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- Flyway：数据库版本管理（生产 MySQL + 测试 H2 同源迁移脚本） -->
         <dependency>
             <groupId>org.flywaydb</groupId>

@@ -3,6 +3,7 @@ package com.club.aspect;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.club.annotation.RepeatSubmit;
 import com.club.common.BusinessException;
+import com.club.metrics.ClubMetrics;
 import com.club.security.SecurityUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +32,9 @@ public class RepeatSubmitAspect {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private ClubMetrics metrics;
+
     @Before("@annotation(repeatSubmit)")
     public void before(JoinPoint point, RepeatSubmit repeatSubmit) {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -52,6 +56,7 @@ public class RepeatSubmitAspect {
         try {
             Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(key, "1", repeatSubmit.interval(), TimeUnit.MILLISECONDS);
             if (Boolean.FALSE.equals(success)) {
+                metrics.incrRepeatSubmitRejections();
                 throw new BusinessException("请勿重复提交");
             }
         } catch (BusinessException e) {

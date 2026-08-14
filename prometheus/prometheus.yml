@@ -1,0 +1,12 @@
+# Prometheus 抓取配置（docker compose 内网直接访问 backend）
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'club-flow-backend'
+    metrics_path: '/api/actuator/prometheus'
+    static_configs:
+      - targets: ['backend:8081']
+        labels:
+          application: club-flow

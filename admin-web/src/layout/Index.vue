@@ -51,12 +51,13 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { logout } from '../api/auth'
+import { clearTokens } from '../utils/request'
 
 const router = useRouter()
 const handleCommand = async (cmd: string) => {
   if (cmd === 'logout') {
     try { await logout() } catch {}
-    localStorage.removeItem('token')
+    clearTokens()
     router.push('/login')
   }
 }

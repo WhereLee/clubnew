@@ -1,5 +1,6 @@
 package com.club.event;
 
+import com.club.metrics.ClubMetrics;
 import com.club.service.RankService;
 import jakarta.annotation.Resource;
 import org.slf4j.Logger;
@@ -37,6 +38,9 @@ public class ClubEventPublisher {
     @Resource
     private RankService rankService;
 
+    @Resource
+    private ClubMetrics metrics;
+
     /**
      * 发布事件。Redis 不可用时降级为同步加分。
      *
@@ -57,9 +61,11 @@ public class ClubEventPublisher {
                     .ofMap(fields)
                     .withStreamKey(STREAM_KEY);
             RecordId recordId = stringRedisTemplate.opsForStream().add(record);
+            metrics.incrEventPublished();
             log.debug("事件已发布: type={}, eventId={}", type, recordId);
         } catch (Exception e) {
             // 降级：同步加分，保证排行榜不丢分
+            metrics.incrEventPublishFallbacks();
             log.warn("Stream 发布失败，降级为同步加分: type={}, err={}", type, e.getMessage());
             applyScoreSync(type, clubId, bizId, bizType);
         }

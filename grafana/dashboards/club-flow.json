@@ -1,0 +1,205 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "row",
+      "title": "HTTP 流量（RED 方法）",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "请求速率（Rate）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"club-flow\"}[1m])) by (uri)",
+          "legendFormat": "{{uri}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "错误率（Errors，5xx）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"club-flow\",status=~\"5..\"}[1m])) by (uri)",
+          "legendFormat": "{{uri}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 102
+    },
+    {
+      "type": "row",
+      "title": "防超卖与限流（核心业务指标）",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 200,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "报名流量",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(club_recruit_apply_total[1m]))",
+          "legendFormat": "纳新报名",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(club_activity_signup_total[1m]))",
+          "legendFormat": "活动报名",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 201
+    },
+    {
+      "type": "timeseries",
+      "title": "保护机制触发（限流/防重/预扣失败）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(club_ratelimit_rejections_total[1m]))",
+          "legendFormat": "限流拦截",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(club_repeatsubmit_rejections_total[1m]))",
+          "legendFormat": "防重拦截",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(club_stock_prededuct_failures_total[1m]))",
+          "legendFormat": "预扣失败",
+          "refId": "C"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 202
+    },
+    {
+      "type": "row",
+      "title": "Redis Stream 事件管道",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 300,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "事件发布/消费速率",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(rate(club_stream_event_published_total[1m]))",
+          "legendFormat": "发布成功",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(club_stream_event_publish_fallbacks_total[1m]))",
+          "legendFormat": "发布降级",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(club_stream_event_consumed_total[1m]))",
+          "legendFormat": "消费成功",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(club_stream_event_consume_failures_total[1m]))",
+          "legendFormat": "消费失败",
+          "refId": "D"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "id": 301
+    },
+    {
+      "type": "timeseries",
+      "title": "消费积压（PENDING 消息数）",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "club_stream_pending_messages",
+          "legendFormat": "PENDING 积压",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "id": 302
+    },
+    {
+      "type": "row",
+      "title": "运行时（JVM / 连接池）",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 400,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM 内存",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{application=\"club-flow\",area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "堆已用(MB)",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_max_bytes{application=\"club-flow\",area=\"heap\"}) / 1024 / 1024",
+          "legendFormat": "堆上限(MB)",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 401
+    },
+    {
+      "type": "timeseries",
+      "title": "HikariCP 连接池",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "hikaricp_connections_active{application=\"club-flow\"}",
+          "legendFormat": "活跃连接",
+          "refId": "A"
+        },
+        {
+          "expr": "hikaricp_connections_pending{application=\"club-flow\"}",
+          "legendFormat": "等待连接",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "id": 402
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["club-flow"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "datasource": { "type": "prometheus" }
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Club Flow 业务监控",
+  "uid": "club-flow-overview",
+  "version": 1
+}

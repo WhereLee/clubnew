@@ -33,17 +33,23 @@ mybatis-plus:
 # JWT：secret 必须通过环境变量注入（生产环境禁止使用默认值）
 jwt:
   secret: ${JWT_SECRET:clubflow2024secretkey1234567890abcdef}
+  # access token 有效期（默认 30 分钟）
   expiration: ${JWT_EXPIRATION:1800000}
+  # refresh token 有效期（默认 7 天，不透明随机串存 Redis，可吊销可轮换）
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 # 可观测性：health/info/metrics 暴露（生产可再收紧，只开放 health 给 LB 探活）
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when_authorized
+  metrics:
+    tags:
+      application: club-flow
 
 springdoc:
   swagger-ui:

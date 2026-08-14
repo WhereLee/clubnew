@@ -22,3 +22,7 @@ mybatis-plus:
   configuration:
     # 仅开发环境打印 SQL；生产 profile 不配置此项
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 开发/内网监控环境：匿名开放 actuator 探活与 prometheus 抓取（生产 profile 默认关闭）
+security:
+  actuator-open: true

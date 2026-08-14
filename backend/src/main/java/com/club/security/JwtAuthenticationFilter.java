@@ -44,6 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String TOKEN_PREFIX = "Bearer ";
     private static final String LOGIN_TOKENS_PREFIX = "login_tokens:";
+    private static final String BLACKLIST_PREFIX = "user_blacklist:";
 
     @Resource
     private JwtUtils jwtUtils;
@@ -68,7 +69,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /** 先查 Redis 会话，Redis 故障时降级为 token 内嵌信息 */
     private void authenticate(String token) {
+        Claims claims = jwtUtils.parseToken(token);
+        Number userIdNum = claims.get("userId", Number.class);
+        Long userId = userIdNum != null ? userIdNum.longValue() : null;
         try {
+            // 黑名单检查：refresh token 复用检测触发拉黑时，access 剩余有效期内全部拒绝
+            if (userId != null && stringRedisTemplate.opsForValue().get(BLACKLIST_PREFIX + userId) != null) {
+                return;
+            }
             String redisKey = LOGIN_TOKENS_PREFIX + token;
             String cached = stringRedisTemplate.opsForValue().get(redisKey);
             if (cached != null) {
@@ -78,13 +86,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // cached == null：会话已注销/过期，拒绝（区别于 Redis 故障的降级路径）
         } catch (Exception e) {
             log.warn("Redis 会话查询失败，降级为 JWT 内嵌信息认证: {}", e.getMessage());
-            setAuthentication(buildFallbackLoginUser(token));
+            setAuthentication(buildFallbackLoginUser(claims));
         }
     }
 
     /** Redis 不可用时从 token claim 构建最小登录信息（登录时刻的权限快照） */
-    private LoginUser buildFallbackLoginUser(String token) {
-        Claims claims = jwtUtils.parseToken(token);
+    private LoginUser buildFallbackLoginUser(Claims claims) {
         LoginUser user = new LoginUser();
         Number userId = claims.get("userId", Number.class);
         user.setUserId(userId != null ? userId.longValue() : null);
