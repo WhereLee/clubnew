@@ -43,7 +43,10 @@ class ConcurrentDuplicateTest {
     @Test
     void concurrentDuplicateSignup_onlyOneRecordAndNoOverDeduct() throws Exception {
         // 造社团 + 纳新（IN_PROGRESS，时间窗口内，quota 充足）
-        jdbcTemplate.update("INSERT INTO club (id, name, code, status, member_count, star_level, create_time, update_time, deleted) VALUES (5001,'并发纳新社团','C5001','APPROVED',0,0,NOW(),NOW(),0)");
+        // 数据自洽（测试数据规范铁律 5）：APPROVED 社团必须恰好 1 个 ACTIVE 社长，member_count 与明细一致——
+        // 共享 H2 库下其他测试类（如 AgentToolTest 数据体检）可能在任意顺序执行，残留数据必须自洽
+        jdbcTemplate.update("INSERT INTO club (id, name, code, status, member_count, star_level, create_time, update_time, deleted) VALUES (5001,'并发纳新社团','C5001','APPROVED',1,0,NOW(),NOW(),0)");
+        jdbcTemplate.update("INSERT INTO club_member (id, club_id, user_id, member_role, status, apply_time, join_time, create_time, update_time, deleted) VALUES (9501, 5001, 1, 'PRESIDENT', 'ACTIVE', NOW(), NOW(), NOW(), NOW(), 0)");
         jdbcTemplate.update("INSERT INTO recruit (id, club_id, title, description, quota, applied_count, start_time, end_time, status, version, create_time, update_time, deleted) " +
                 "VALUES (9001, 5001, '并发纳新', '测试', 100, 0, ?, ?, 'IN_PROGRESS', 0, NOW(), NOW(), 0)",
                 LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1));
@@ -73,7 +76,9 @@ class ConcurrentDuplicateTest {
     @Test
     void concurrentDuplicateCheckin_onlyOneRecord() throws Exception {
         // 造社团 + 活动（ONGOING，签到开启，时间窗口内）
-        jdbcTemplate.update("INSERT INTO club (id, name, code, status, member_count, star_level, create_time, update_time, deleted) VALUES (5002,'并发签到社团','C5002','APPROVED',0,0,NOW(),NOW(),0)");
+        // 数据自洽：恰好 1 个 ACTIVE 社长 + member_count 与明细一致
+        jdbcTemplate.update("INSERT INTO club (id, name, code, status, member_count, star_level, create_time, update_time, deleted) VALUES (5002,'并发签到社团','C5002','APPROVED',1,0,NOW(),NOW(),0)");
+        jdbcTemplate.update("INSERT INTO club_member (id, club_id, user_id, member_role, status, apply_time, join_time, create_time, update_time, deleted) VALUES (9502, 5002, 1, 'PRESIDENT', 'ACTIVE', NOW(), NOW(), NOW(), NOW(), 0)");
         jdbcTemplate.update("INSERT INTO activity (id, club_id, title, start_time, end_time, quota, applied_count, status, checkin_enabled, version, create_time, update_time, deleted) " +
                 "VALUES (6001, 5002, '签到活动', ?, ?, 100, 1, 'ONGOING', 'Y', 0, NOW(), NOW(), 0)",
                 LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1));

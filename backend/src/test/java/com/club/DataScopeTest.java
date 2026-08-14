@@ -65,13 +65,29 @@ class DataScopeTest {
         jdbcTemplate.update(
                 "INSERT INTO club (id, name, code, description, category, status, member_count, star_level, create_user_id, create_time, update_time, deleted) " +
                 "VALUES (?,?,?,?,?,?,?,?,?,NOW(),NOW(),0)",
-                id, name, "CODE" + id, "测试社团", "ACADEMIC", "APPROVED", 0, 0, createUserId);
+                id, name, "CODE" + id, "测试社团", "ACADEMIC", "APPROVED", 1, 0, createUserId);
+        // 数据自洽（测试数据规范铁律 5）：APPROVED 社团恰好 1 个 ACTIVE 社长——共享库其他测试类（数据体检）任意顺序执行
+        jdbcTemplate.update(
+                "INSERT INTO club_member (id, club_id, user_id, member_role, status, apply_time, join_time, create_time, update_time, deleted) " +
+                "VALUES (?,?,?,?,?,NOW(),NOW(),NOW(),NOW(),0)",
+                10000L + id, id, 1L, "PRESIDENT", "ACTIVE");
+    }
+
+    /** 级联清理社团域数据（避免残留孤儿引用污染共享库其他测试类的对账检查） */
+    private void cleanupClubDomain() {
+        jdbcTemplate.update("DELETE FROM activity_checkin");
+        jdbcTemplate.update("DELETE FROM activity_signup");
+        jdbcTemplate.update("DELETE FROM recruit_record");
+        jdbcTemplate.update("DELETE FROM activity");
+        jdbcTemplate.update("DELETE FROM recruit");
+        jdbcTemplate.update("DELETE FROM club_member");
+        jdbcTemplate.update("DELETE FROM club");
     }
 
     @Test
     void adminSeesAllClubs() {
-        // 清空其他测试残留的 club 数据，保证断言用绝对数量可靠
-        jdbcTemplate.update("DELETE FROM club");
+        // 级联清理其他测试残留的社团域数据，保证断言用绝对数量可靠
+        cleanupClubDomain();
         // 造一个学生用户 + 学生角色关联（data_scope=4 仅本人）
         jdbcTemplate.update("INSERT INTO sys_user (id, username, nickname, user_type, status, create_time, update_time, deleted) VALUES (100, 'stu100', '学生', 'STUDENT', '0', NOW(), NOW(), 0)");
         jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (100, 3)");
@@ -92,8 +108,8 @@ class DataScopeTest {
 
     @Test
     void studentSeesOnlyOwnClubs() {
-        // 清空其他测试残留的 club 数据，保证断言用绝对数量可靠
-        jdbcTemplate.update("DELETE FROM club");
+        // 级联清理其他测试残留的社团域数据，保证断言用绝对数量可靠
+        cleanupClubDomain();
         // 学生用户 + 学生角色（data_scope=4 仅本人）
         jdbcTemplate.update("INSERT INTO sys_user (id, username, nickname, user_type, status, create_time, update_time, deleted) VALUES (200, 'stu200', '学生', 'STUDENT', '0', NOW(), NOW(), 0)");
         jdbcTemplate.update("INSERT INTO sys_user_role (user_id, role_id) VALUES (200, 3)");
