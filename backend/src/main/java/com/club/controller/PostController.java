@@ -57,6 +57,12 @@ public class PostController {
         Post existing = postService.getById(id);
         if (existing == null) return R.fail("动态不存在");
         // 仅作者或管理员可删除
+        Long userId = SecurityUtils.getUserId();
+        boolean isAdmin = SecurityUtils.getLoginUser() != null
+                && "ADMIN".equals(SecurityUtils.getLoginUser().getUserType());
+        if (!isAdmin && !existing.getAuthorId().equals(userId)) {
+            return R.fail("只能删除自己的动态");
+        }
         postService.removeById(id);
         return R.success();
     }

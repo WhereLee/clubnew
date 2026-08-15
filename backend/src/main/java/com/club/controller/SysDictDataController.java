@@ -6,6 +6,7 @@ import com.club.common.R;
 import com.club.domain.SysDictData;
 import com.club.service.SysDictDataService;
 import jakarta.annotation.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -36,6 +37,7 @@ public class SysDictDataController {
         return R.success(dictDataService.getById(id));
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @PostMapping
     @Log(title = "字典数据", businessType = 1)
     public R<Void> add(@RequestBody SysDictData dictData) {
@@ -43,6 +45,7 @@ public class SysDictDataController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @PutMapping
     @Log(title = "字典数据", businessType = 2)
     public R<Void> update(@RequestBody SysDictData dictData) {
@@ -50,6 +53,7 @@ public class SysDictDataController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @DeleteMapping("/{ids}")
     @Log(title = "字典数据", businessType = 3)
     public R<Void> delete(@PathVariable String ids) {

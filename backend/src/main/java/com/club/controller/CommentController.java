@@ -39,6 +39,17 @@ public class CommentController {
     @DeleteMapping("/{id}")
     @Log(title = "删评论", businessType = 3)
     public R<Void> delete(@PathVariable Long id) {
+        Comment existing = commentService.getById(id);
+        if (existing == null) {
+            return R.fail("评论不存在");
+        }
+        // 仅作者或管理员可删除（防任意删除他人评论）
+        Long userId = SecurityUtils.getUserId();
+        boolean isAdmin = SecurityUtils.getLoginUser() != null
+                && "ADMIN".equals(SecurityUtils.getLoginUser().getUserType());
+        if (!isAdmin && !existing.getUserId().equals(userId)) {
+            return R.fail("只能删除自己的评论");
+        }
         commentService.removeById(id);
         return R.success();
     }

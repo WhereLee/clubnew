@@ -60,8 +60,9 @@ class GlobalExceptionTest {
 
     @Test
     void whenNotFound_thenReturns404() throws Exception {
+        // 协议级 404：HTTP 状态与业务码一致（不再伪装 200）
         mockMvc.perform(get("/nonexistent/path"))
-                .andExpect(status().isOk())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404));
     }
 }

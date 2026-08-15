@@ -6,6 +6,7 @@ import com.club.common.R;
 import com.club.domain.SysConfig;
 import com.club.service.SysConfigService;
 import jakarta.annotation.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -35,6 +36,7 @@ public class SysConfigController {
         return R.success(configService.getById(id));
     }
 
+    @PreAuthorize("@ss.hasPermi('system:config:list')")
     @PostMapping
     @Log(title = "参数配置", businessType = 1)
     public R<Void> add(@RequestBody SysConfig config) {
@@ -42,6 +44,7 @@ public class SysConfigController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:config:list')")
     @PutMapping
     @Log(title = "参数配置", businessType = 2)
     public R<Void> update(@RequestBody SysConfig config) {
@@ -49,6 +52,7 @@ public class SysConfigController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:config:list')")
     @DeleteMapping("/{ids}")
     @Log(title = "参数配置", businessType = 3)
     public R<Void> delete(@PathVariable String ids) {

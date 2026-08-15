@@ -82,7 +82,9 @@ request.interceptors.response.use(
     if (status === 401) {
       return handle401(error.config)
     }
-    ElMessage.error(error.message || '网络错误')
+    // 协议级错误（400/403/404/405/500）优先展示后端 msg，而非 axios 原始英文提示
+    const msg = error.response?.data?.msg || error.message || '网络错误'
+    ElMessage.error(msg)
     return Promise.reject(error)
   }
 )

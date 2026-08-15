@@ -10,6 +10,7 @@ import com.club.domain.SysDictType;
 import com.club.service.SysDictDataService;
 import com.club.service.SysDictTypeService;
 import jakarta.annotation.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -38,6 +39,7 @@ public class SysDictTypeController {
         return R.success(dictTypeService.getById(id));
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @PostMapping
     @Log(title = "字典类型", businessType = 1)
     public R<Void> add(@RequestBody SysDictType dictType) {
@@ -45,6 +47,7 @@ public class SysDictTypeController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @PutMapping
     @Log(title = "字典类型", businessType = 2)
     public R<Void> update(@RequestBody SysDictType dictType) {
@@ -52,6 +55,7 @@ public class SysDictTypeController {
         return R.success();
     }
 
+    @PreAuthorize("@ss.hasPermi('system:dict:list')")
     @DeleteMapping("/{ids}")
     @Log(title = "字典类型", businessType = 3)
     public R<Void> delete(@PathVariable String ids) {

@@ -9,6 +9,7 @@ import com.club.domain.ClubMember;
 import com.club.enums.MemberRole;
 import com.club.enums.MemberStatus;
 import com.club.mapper.ClubMemberMapper;
+import com.club.security.SecurityUtils;
 import com.club.service.ClubMemberService;
 import jakarta.annotation.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -58,6 +59,8 @@ public class ClubMemberServiceImpl extends ServiceImpl<ClubMemberMapper, ClubMem
         if (member == null) {
             throw new BusinessException("申请记录不存在");
         }
+        // 权限：仅该社团社长或管理员可审核入社申请（防横向越权）
+        assertClubManager(member.getClubId(), auditUserId);
         if (!MemberStatus.PENDING.name().equals(member.getStatus())) {
             throw new BusinessException("该申请已被处理");
         }
@@ -102,6 +105,8 @@ public class ClubMemberServiceImpl extends ServiceImpl<ClubMemberMapper, ClubMem
         if (member == null) {
             throw new BusinessException("成员不存在");
         }
+        // 权限：仅该社团社长或管理员可移除成员
+        assertClubManager(member.getClubId(), operatorId);
         if (MemberRole.PRESIDENT.name().equals(member.getMemberRole())) {
             throw new BusinessException("不能踢出社长");
         }
@@ -121,6 +126,8 @@ public class ClubMemberServiceImpl extends ServiceImpl<ClubMemberMapper, ClubMem
         if (member == null) {
             throw new BusinessException("成员不存在");
         }
+        // 权限：仅该社团社长或管理员可调整成员角色（封「把自己提为社长」的提权路径）
+        assertClubManager(member.getClubId(), operatorId);
         if (!MemberStatus.ACTIVE.name().equals(member.getStatus())) {
             throw new BusinessException("该成员不在社");
         }
@@ -141,5 +148,17 @@ public class ClubMemberServiceImpl extends ServiceImpl<ClubMemberMapper, ClubMem
                .eq(ClubMember::getUserId, userId)
                .eq(ClubMember::getStatus, MemberStatus.ACTIVE.name());
         return getOne(wrapper);
+    }
+
+    /** 管理权限校验：操作者必须是该社团 ACTIVE 社长，或全局管理员 */
+    private void assertClubManager(Long clubId, Long operatorId) {
+        if (SecurityUtils.getLoginUser() != null
+                && "ADMIN".equals(SecurityUtils.getLoginUser().getUserType())) {
+            return;
+        }
+        ClubMember operator = getMember(clubId, operatorId);
+        if (operator == null || !MemberRole.PRESIDENT.name().equals(operator.getMemberRole())) {
+            throw new BusinessException("仅社长或管理员可执行此操作");
+        }
     }
 }

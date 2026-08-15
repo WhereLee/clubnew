@@ -31,6 +31,7 @@ public class GlobalExceptionHandler {
 
     /** 参数校验异常 */
     @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleValidException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
@@ -41,6 +42,7 @@ public class GlobalExceptionHandler {
 
     /** 绑定异常 */
     @ExceptionHandler(BindException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleBindException(BindException e) {
         String message = e.getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
@@ -58,18 +60,21 @@ public class GlobalExceptionHandler {
 
     /** 404 */
     @ExceptionHandler(NoHandlerFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     public R<Void> handleNoHandlerFoundException(NoHandlerFoundException e) {
         return R.fail(ResultCode.NOT_FOUND, "资源不存在");
     }
 
     /** 请求方法不支持 */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
     public R<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         return R.fail(ResultCode.BAD_REQUEST, "不支持'" + e.getMethod() + "'请求");
     }
 
     /** 请求体 JSON 格式错误 / 类型不匹配（客户端问题，返回 400 而非 500） */
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
         return R.fail(ResultCode.BAD_REQUEST, "请求参数格式错误");
@@ -77,6 +82,7 @@ public class GlobalExceptionHandler {
 
     /** 方法级参数校验失败（@Validated / @RequestParam 约束） */
     @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleConstraintViolation(jakarta.validation.ConstraintViolationException e) {
         String message = e.getConstraintViolations().stream()
                 .map(v -> v.getPropertyPath() + ": " + v.getMessage())
@@ -87,6 +93,7 @@ public class GlobalExceptionHandler {
 
     /** 唯一约束冲突兜底（并发重复提交在 Service 层已友好处理，此处防其余场景裸 500） */
     @ExceptionHandler(org.springframework.dao.DuplicateKeyException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleDuplicateKey(org.springframework.dao.DuplicateKeyException e) {
         log.warn("唯一约束冲突: {}", e.getMessage());
         return R.fail(ResultCode.BAD_REQUEST, "数据已存在，请勿重复操作");
@@ -94,6 +101,7 @@ public class GlobalExceptionHandler {
 
     /** 系统异常 */
     @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public R<Void> handleException(Exception e, HttpServletRequest request) {
         log.error("系统异常: {}", request.getRequestURI(), e);
         return R.fail(ResultCode.FAIL, "系统异常");
