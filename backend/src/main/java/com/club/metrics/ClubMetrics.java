@@ -29,6 +29,14 @@ public class ClubMetrics {
     // ---- Gauge：Stream 积压（PENDING 消息数） ----
     private final AtomicLong streamPendingGauge = new AtomicLong(0);
 
+    // ---- Counter：技术管理员监控面（业务活跃度 / AI 健康度 / 安全信号） ----
+    private final Counter clubAuditApprovedTotal;
+    private final Counter clubAuditRejectedTotal;
+    private final Counter agentToolSuccessTotal;
+    private final Counter agentToolFailureTotal;
+    private final Counter agentToolDeniedTotal;
+    private final Counter loginFailedTotal;
+
     public ClubMetrics(MeterRegistry meterRegistry) {
         this.recruitApplyTotal = Counter.builder("club_recruit_apply_total")
                 .description("纳新报名请求总数").register(meterRegistry);
@@ -49,6 +57,19 @@ public class ClubMetrics {
         this.eventConsumeFailures = Counter.builder("club_stream_event_consume_failures_total")
                 .description("Stream 事件消费失败数（留 PENDING 重试）").register(meterRegistry);
         meterRegistry.gauge("club_stream_pending_messages", streamPendingGauge);
+
+        this.clubAuditApprovedTotal = Counter.builder("club_audit_approved_total")
+                .description("社团/经费审批通过次数").register(meterRegistry);
+        this.clubAuditRejectedTotal = Counter.builder("club_audit_rejected_total")
+                .description("社团/经费审批驳回次数").register(meterRegistry);
+        this.agentToolSuccessTotal = Counter.builder("club_agent_tool_success_total")
+                .description("AI 工具调用成功次数").register(meterRegistry);
+        this.agentToolFailureTotal = Counter.builder("club_agent_tool_failure_total")
+                .description("AI 工具调用失败次数").register(meterRegistry);
+        this.agentToolDeniedTotal = Counter.builder("club_agent_tool_denied_total")
+                .description("AI 工具调用被权限拒绝次数（安全信号）").register(meterRegistry);
+        this.loginFailedTotal = Counter.builder("club_login_failed_total")
+                .description("登录失败次数（撞库检测信号）").register(meterRegistry);
     }
 
     public void incrRecruitApply() { recruitApplyTotal.increment(); }
@@ -61,4 +82,10 @@ public class ClubMetrics {
     public void incrEventConsumed() { eventConsumed.increment(); }
     public void incrEventConsumeFailures() { eventConsumeFailures.increment(); }
     public void setStreamPending(long count) { streamPendingGauge.set(count); }
+    public void incrClubAuditApproved() { clubAuditApprovedTotal.increment(); }
+    public void incrClubAuditRejected() { clubAuditRejectedTotal.increment(); }
+    public void incrAgentToolSuccess() { agentToolSuccessTotal.increment(); }
+    public void incrAgentToolFailure() { agentToolFailureTotal.increment(); }
+    public void incrAgentToolDenied() { agentToolDeniedTotal.increment(); }
+    public void incrLoginFailed() { loginFailedTotal.increment(); }
 }

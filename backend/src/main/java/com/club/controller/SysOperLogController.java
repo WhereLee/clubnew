@@ -5,6 +5,7 @@ import com.club.common.R;
 import com.club.domain.SysOperLog;
 import com.club.service.SysOperLogService;
 import jakarta.annotation.Resource;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -16,6 +17,7 @@ public class SysOperLogController {
     @Resource
     private SysOperLogService operLogService;
 
+    @PreAuthorize("@ss.hasPermi('monitor:operlog:list')")
     @GetMapping("/list")
     public R<IPage<SysOperLog>> list(
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -24,6 +26,7 @@ public class SysOperLogController {
         return R.success(operLogService.listPage(pageNum, pageSize, title, operName, status));
     }
 
+    @PreAuthorize("@ss.hasPermi('monitor:operlog:list')")
     @DeleteMapping("/{ids}")
     public R<Void> delete(@PathVariable String ids) {
         operLogService.removeByIds(Arrays.asList(ids.split(",")));

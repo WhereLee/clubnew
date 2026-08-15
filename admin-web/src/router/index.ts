@@ -21,6 +21,7 @@ const routes = [
       { path: 'rank', name: 'Rank', component: () => import('../views/rank/Rank.vue'), meta: { title: '排行榜' } },
       { path: 'log/oper', name: 'OperLog', component: () => import('../views/log/OperLog.vue'), meta: { title: '操作日志' } },
       { path: 'log/login', name: 'LoginLog', component: () => import('../views/log/LoginLog.vue'), meta: { title: '登录日志' } },
+      { path: 'monitor/overview', name: 'MonitorOverview', component: () => import('../views/monitor/Overview.vue'), meta: { title: '运行概览' } },
     ]
   }
 ]
@@ -34,6 +35,9 @@ router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
   if (to.path === '/login') return next()
   if (!token) return next('/login')
+  // 技术管理员的工作台是运行概览（职责分离：业务工作台归系统管理员）
+  const userType = localStorage.getItem('userType')
+  if (userType === 'TECH_ADMIN' && (to.path === '/dashboard' || to.path === '/')) return next('/monitor/overview')
   next()
 })
 

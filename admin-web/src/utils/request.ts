@@ -18,7 +18,11 @@ export const setTokens = (token: string, refreshToken?: string) => {
 export const clearTokens = () => {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(REFRESH_KEY)
+  localStorage.removeItem(USER_TYPE_KEY)
 }
+const USER_TYPE_KEY = 'userType'
+export const getUserType = () => localStorage.getItem(USER_TYPE_KEY) || ''
+export const setUserType = (t: string) => localStorage.setItem(USER_TYPE_KEY, t)
 
 request.interceptors.request.use(config => {
   const token = getToken()

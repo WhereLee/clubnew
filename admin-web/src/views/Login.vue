@@ -20,7 +20,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '../api/auth'
-import { setTokens } from '../utils/request'
+import { setTokens, setUserType } from '../utils/request'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -33,6 +33,7 @@ const handleLogin = async () => {
   try {
     const res: any = await login(form)
     setTokens(res.data.token, res.data.refreshToken)
+    setUserType(res.data.userType)
     ElMessage.success('登录成功')
     router.push('/')
   } catch { } finally { loading.value = false }

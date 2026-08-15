@@ -3,11 +3,13 @@ package com.club.common;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
@@ -47,8 +49,9 @@ public class GlobalExceptionHandler {
         return R.fail(ResultCode.BAD_REQUEST, message);
     }
 
-    /** 无权限 */
+    /** 无权限（@PreAuthorize 方法级拒绝：与 SecurityExceptionHandler 的 HTTP 403 语义一致） */
     @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     public R<Void> handleAccessDeniedException(AccessDeniedException e) {
         return R.fail(ResultCode.FORBIDDEN, "没有权限");
     }

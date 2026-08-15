@@ -3,32 +3,39 @@
     <el-aside width="220px" class="sidebar">
       <div class="logo">社团管理</div>
       <el-menu :default-active="$route.path" router background-color="#1B1F2A" text-color="#9CA3AF" active-text-color="#FFFFFF">
-        <el-menu-item index="/dashboard"><el-icon><Monitor /></el-icon>工作台</el-menu-item>
-        <el-sub-menu index="system">
-          <template #title><el-icon><Setting /></el-icon>系统管理</template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/menu">菜单管理</el-menu-item>
-          <el-menu-item index="/system/dict">字典管理</el-menu-item>
-          <el-menu-item index="/system/config">参数配置</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="club">
-          <template #title><el-icon><Guide /></el-icon>社团管理</template>
-          <el-menu-item index="/club/list">社团列表</el-menu-item>
-          <el-menu-item index="/club/audit">社团审批</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="biz">
-          <template #title><el-icon><Grid /></el-icon>业务管理</template>
-          <el-menu-item index="/recruit/list">纳新管理</el-menu-item>
-          <el-menu-item index="/activity/list">活动管理</el-menu-item>
-          <el-menu-item index="/fund/audit">经费审批</el-menu-item>
-          <el-menu-item index="/rank">排行榜</el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="log">
-          <template #title><el-icon><Document /></el-icon>日志</template>
-          <el-menu-item index="/log/oper">操作日志</el-menu-item>
-          <el-menu-item index="/log/login">登录日志</el-menu-item>
-        </el-sub-menu>
+        <!-- 业务侧菜单：系统管理员可见 -->
+        <template v-if="isAdmin">
+          <el-menu-item index="/dashboard"><el-icon><Monitor /></el-icon>工作台</el-menu-item>
+          <el-sub-menu index="system">
+            <template #title><el-icon><Setting /></el-icon>系统管理</template>
+            <el-menu-item index="/system/user">用户管理</el-menu-item>
+            <el-menu-item index="/system/role">角色管理</el-menu-item>
+            <el-menu-item index="/system/menu">菜单管理</el-menu-item>
+            <el-menu-item index="/system/dict">字典管理</el-menu-item>
+            <el-menu-item index="/system/config">参数配置</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="club">
+            <template #title><el-icon><Guide /></el-icon>社团管理</template>
+            <el-menu-item index="/club/list">社团列表</el-menu-item>
+            <el-menu-item index="/club/audit">社团审批</el-menu-item>
+          </el-sub-menu>
+          <el-sub-menu index="biz">
+            <template #title><el-icon><Grid /></el-icon>业务管理</template>
+            <el-menu-item index="/recruit/list">纳新管理</el-menu-item>
+            <el-menu-item index="/activity/list">活动管理</el-menu-item>
+            <el-menu-item index="/fund/audit">经费审批</el-menu-item>
+            <el-menu-item index="/rank">排行榜</el-menu-item>
+          </el-sub-menu>
+        </template>
+        <!-- 运行侧菜单：技术管理员可见（职责分离：admin 管业务，tech_admin 管运行） -->
+        <template v-if="isTechAdmin">
+          <el-sub-menu index="monitor">
+            <template #title><el-icon><Odometer /></el-icon>监控中心</template>
+            <el-menu-item index="/monitor/overview">运行概览</el-menu-item>
+            <el-menu-item index="/log/oper">操作日志</el-menu-item>
+            <el-menu-item index="/log/login">登录日志</el-menu-item>
+          </el-sub-menu>
+        </template>
       </el-menu>
       <button class="ai-entry" @click="aiVisible = true">
         <span class="ai-entry-orb"></span>
@@ -39,7 +46,7 @@
       <el-header class="header">
         <span>{{ $route.meta.title }}</span>
         <el-dropdown @command="handleCommand">
-          <span class="user-info">管理员 <el-icon><ArrowDown /></el-icon></span>
+          <span class="user-info">{{ roleLabel }} <el-icon><ArrowDown /></el-icon></span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="logout">退出登录</el-dropdown-item>
@@ -54,10 +61,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { logout } from '../api/auth'
-import { clearTokens } from '../utils/request'
+import { clearTokens, getUserType } from '../utils/request'
+
+const isAdmin = computed(() => getUserType() === 'ADMIN')
+const isTechAdmin = computed(() => getUserType() === 'TECH_ADMIN')
+const roleLabel = computed(() => (isTechAdmin.value ? '技术管理员' : '管理员'))
 import AiDrawer from '../components/AiDrawer.vue'
 
 const aiVisible = ref(false)

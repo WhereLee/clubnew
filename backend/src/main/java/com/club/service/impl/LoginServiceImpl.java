@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import com.club.common.BusinessException;
 import com.club.domain.SysLoginLog;
 import com.club.domain.SysUser;
+import com.club.metrics.ClubMetrics;
 import com.club.security.JwtUtils;
 import com.club.security.LoginUser;
 import com.club.service.LoginService;
@@ -36,6 +37,9 @@ public class LoginServiceImpl implements LoginService {
 
     @Resource
     private SysMenuService menuService;
+
+    @Resource
+    private ClubMetrics clubMetrics;
 
     @Resource
     private PasswordEncoder passwordEncoder;
@@ -101,6 +105,7 @@ public class LoginServiceImpl implements LoginService {
         LoginVO vo = new LoginVO();
         vo.setToken(token);
         vo.setExpiresIn(jwtUtils.getExpiration() / 1000);
+        vo.setUserType(user.getUserType());
         // 签发 refresh token（Redis 不可用时返回 null，前端仅用 access）
         String refreshToken = refreshTokenService.issueRefreshToken(user.getId());
         vo.setRefreshToken(refreshToken);
@@ -134,6 +139,9 @@ public class LoginServiceImpl implements LoginService {
             log.setMsg(msg);
             log.setLoginTime(LocalDateTime.now());
             loginLogService.save(log);
+            if (!"0".equals(status)) {
+                clubMetrics.incrLoginFailed();
+            }
         } catch (Exception ignored) {}
     }
 }

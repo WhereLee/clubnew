@@ -24,7 +24,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(200);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.getWriter().write(objectMapper.writeValueAsString(R.fail(401, "未登录或token已过期")));
     }
 
@@ -32,7 +32,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(200);
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.getWriter().write(objectMapper.writeValueAsString(R.fail(403, "没有权限")));
     }
 }

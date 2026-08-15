@@ -9,8 +9,10 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import com.club.common.BusinessException;
 import com.club.domain.AgentToolLog;
 import com.club.mapper.AgentToolLogMapper;
+import com.club.metrics.ClubMetrics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -35,6 +37,10 @@ public abstract class AbstractAgentTool implements AgentTool {
     protected final AgentToolLogMapper toolLogMapper;
     protected final ObjectMapper objectMapper;
 
+    /** 工具调用结果计数器（AI 健康度：成功/失败/权限拒绝） */
+    @Resource
+    protected ClubMetrics clubMetrics;
+
     protected AbstractAgentTool(AgentToolLogMapper toolLogMapper, ObjectMapper objectMapper) {
         this.toolLogMapper = toolLogMapper;
         this.objectMapper = objectMapper;
@@ -58,6 +64,7 @@ public abstract class AbstractAgentTool implements AgentTool {
         // 1. 权限校验（最小权限原则：编排层过滤之外的第二道防线）
         String denyReason = checkAccess(ctx);
         if (denyReason != null) {
+            incrToolCounter("denied");
             return AgentToolResult.of("权限不足：该工具需要「" + access() + "」权限，当前用户不具备。" + denyReason);
         }
 
@@ -65,12 +72,27 @@ public abstract class AbstractAgentTool implements AgentTool {
         try {
             AgentToolResult result = doExecute(arguments, ctx);
             saveLog(sessionId, ctx, arguments, result, System.currentTimeMillis() - start, 1);
+            incrToolCounter("success");
             return result;
         } catch (Exception e) {
             log.warn("agent 工具 {} 执行异常", name(), e);
+            incrToolCounter("failure");
             AgentToolResult fail = AgentToolResult.of("工具执行失败：" + e.getMessage() + "。请向用户说明本次查询未能完成。");
             saveLog(sessionId, ctx, arguments, fail, System.currentTimeMillis() - start, 0);
             return fail;
+        }
+    }
+
+    /** 工具调用结果计数（监控辅助，计数器组件不可用时静默跳过——如单元测试手动 new 场景） */
+    private void incrToolCounter(String kind) {
+        if (clubMetrics == null) {
+            return;
+        }
+        switch (kind) {
+            case "success" -> clubMetrics.incrAgentToolSuccess();
+            case "failure" -> clubMetrics.incrAgentToolFailure();
+            case "denied" -> clubMetrics.incrAgentToolDenied();
+            default -> { }
         }
     }
 

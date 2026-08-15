@@ -1,6 +1,7 @@
 package com.club.controller;
 
 import com.club.common.R;
+import com.club.annotation.Log;
 import com.club.annotation.RateLimiter;
 import com.club.domain.SysMenu;
 import com.club.domain.SysUser;
@@ -47,6 +48,7 @@ public class AuthController {
     private JdbcTemplate jdbcTemplate;
 
     @PostMapping("/auth/register")
+    @Log(title = "注册管理", businessType = 1)
     public R<Void> register(@Valid @RequestBody RegisterDTO dto) {
         SysUser user = new SysUser();
         user.setUsername(dto.getUsername());
@@ -79,6 +81,7 @@ public class AuthController {
     }
 
     @PostMapping("/auth/logout")
+    @Log(title = "登录管理", businessType = 3)
     public R<Void> logout(@RequestHeader(value = "Authorization", required = false) String token,
                           @RequestBody(required = false) RefreshDTO dto) {
         String refreshToken = dto != null ? dto.getRefreshToken() : null;

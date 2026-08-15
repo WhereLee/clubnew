@@ -8,6 +8,7 @@ import com.club.domain.Club;
 import com.club.domain.ClubMember;
 import com.club.dto.ClubAuditDTO;
 import com.club.enums.ClubStatus;
+import com.club.metrics.ClubMetrics;
 import com.club.security.SecurityUtils;
 import com.club.service.ClubMemberService;
 import com.club.service.ClubService;
@@ -27,6 +28,9 @@ public class ClubController {
 
     @Resource
     private ClubMemberService clubMemberService;
+
+    @Resource
+    private ClubMetrics clubMetrics;
 
     @PostMapping("/apply")
     @Log(title = "社团管理", businessType = 1)
@@ -75,6 +79,11 @@ public class ClubController {
     public R<Void> audit(@Valid @RequestBody ClubAuditDTO dto) {
         Long auditUserId = SecurityUtils.getUserId();
         clubService.auditClub(dto.getClubId(), dto.getApproved(), dto.getRemark(), auditUserId);
+        if (Boolean.TRUE.equals(dto.getApproved())) {
+            clubMetrics.incrClubAuditApproved();
+        } else {
+            clubMetrics.incrClubAuditRejected();
+        }
         return R.success();
     }
 
